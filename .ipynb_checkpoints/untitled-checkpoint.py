@@ -99,13 +99,13 @@ def feature_extractor(dataset):
         
         # FEATURE 2 - Bunch of Gabor filter responses
         
-                #Generate Gabor features
+        #       Generate Gabor features
         num = 1  #To count numbers up in order to give Gabor features a lable in the data frame
         kernels = []
         for theta in range(2):   #Define number of thetas
             theta = theta / 4. * np.pi
             for sigma in (1, 3):  #Sigma with 1 and 3
-                lamda = np.pi/4
+                lamda = np.pi/4 
                 gamma = 0.5
                 gabor_label = 'Gabor' + str(num)  #Label Gabor columns as Gabor1, Gabor2, etc.
     #                print(gabor_label)
@@ -118,14 +118,33 @@ def feature_extractor(dataset):
                 df[gabor_label] = filtered_img  #Labels columns as Gabor1, Gabor2, etc.
                 print(gabor_label, ': theta=', theta, ': sigma=', sigma, ': lamda=', lamda, ': gamma=', gamma)
                 num += 1  #Increment for gabor column label
-                
-         
+
+
         # FEATURE 3 Sobel
         edge_sobel = sobel(img)
         edge_sobel1 = edge_sobel.reshape(-1)
         df['Sobel'] = edge_sobel1
        
-        #Add more filters as needed
+        # FEATURE 4 SIFT
+        # SIFT accepts images with 8 bit integer values
+        sift = cv2.xfeatures2d.SIFT_create()
+        img8bit = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
+        keypoints, descriptor = sift.detectAndCompute(img8bit, None)
+        keypoints_without_size = np.copy(img)
+        fimg = cv2.drawKeypoints(img8bit, keypoints, keypoints_without_size, color = (0, 255, 0))
+        filtered_image = fimg.reshape(-1)
+        df['SIFT'] = filtered_image
+        
+        # FEATURE 5 FAST
+        # FAST also accepts only 8 bit images
+        fast = cv2.FastFeatureDetector_create() 
+        fast.setNonmaxSuppression(False)
+        keypoints_without_nonmax = fast.detect(img8bit, None)
+        image_without_nonmax = np.copy(img)
+        fimg = cv2.drawKeypoints(img8bit, keypoints_without_nonmax, image_without_nonmax, color=(0,255,0), 
+        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        filtered_img = fimg.reshape(-1)
+        df['FAST'] = filtered_img
         
         #Append features from current image to the dataset
         image_dataset = image_dataset.append(df)
